@@ -20,12 +20,18 @@ public class ColoredMeshGenerator : MonoBehaviour
     [SerializeField] private float _xOffsetSpeed = 1f;
     [SerializeField] private float _zOffsetSpeed = 1f;
 
+    [Header("Coloring")] 
+    [SerializeField] private Gradient _gradient;
+
     private MeshFilter _meshFilter;
     private Mesh _mesh;
 
     private Vector3[] _vertices;
-    private Vector2[] _uvs;
+    private Color[] _colors;
     private int[] _triangles;
+
+    private float _minTerrainHeight = float.MaxValue;
+    private float _maxTerrainHeight = float.MinValue;
 
     private int VertexCount => (_xSize + 1) * (_zSize + 1);
     private float ResolutionX => 1f / _xSize;
@@ -43,6 +49,7 @@ public class ColoredMeshGenerator : MonoBehaviour
     private void Update()
     {
         UpdateVertices();
+        UpdateColors();
         UpdateMesh();
 
         if (_isAnimate)
@@ -60,7 +67,38 @@ public class ColoredMeshGenerator : MonoBehaviour
         _triangles = new int[_xSize * _zSize * 6];
 
         UpdateVertices();
+        UpdateTriangles();
+        UpdateColors();
 
+        _mesh.vertices = _vertices;
+        _mesh.triangles = _triangles;
+        _mesh.colors = _colors;
+    }
+
+    private void UpdateVertices()
+    {
+        for (int i = 0, z = 0; z <= _zSize; z++)
+        {
+            for (var x = 0; x <= _xSize; x++, i++)
+            {
+                float y = GetNoiseSample(x, z);
+                _vertices[i] = new Vector3(x, y, z);
+
+                if (y > _maxTerrainHeight)
+                {
+                    _maxTerrainHeight = y;
+                }
+
+                if (y < _minTerrainHeight)
+                {
+                    _minTerrainHeight = y;
+                }
+            }
+        }
+    }
+
+    private void UpdateTriangles()
+    {
         for (int vert = 0, tris = 0, z = 0; z < _zSize; z++, vert++)
         {
             for (var x = 0; x < _xSize; x++, vert++)
@@ -75,29 +113,17 @@ public class ColoredMeshGenerator : MonoBehaviour
                 tris += 6;
             }
         }
-
-        _uvs = new Vector2[VertexCount];
-        for (int i = 0, z = 0; z <= _zSize; z++)
-        {
-            for (var x = 0; x <= _xSize; x++, i++)
-            {
-                _uvs[i] = new Vector2((float)x / _xSize, (float)z / _zSize);
-            }
-        }
-
-        _mesh.vertices = _vertices;
-        _mesh.triangles = _triangles;
-        _mesh.uv = _uvs;
     }
 
-    private void UpdateVertices()
+    private void UpdateColors()
     {
+        _colors = new Color[VertexCount];
         for (int i = 0, z = 0; z <= _zSize; z++)
         {
             for (var x = 0; x <= _xSize; x++, i++)
             {
-                float y = GetNoiseSample(x, z);
-                _vertices[i] = new Vector3(x, y, z);
+                float height = Mathf.InverseLerp(_minTerrainHeight, _maxTerrainHeight, _vertices[i].y);
+                _colors[i] = _gradient.Evaluate(height);
             }
         }
     }
@@ -110,6 +136,7 @@ public class ColoredMeshGenerator : MonoBehaviour
     private void UpdateMesh()
     {
         _mesh.vertices = _vertices;
+        _mesh.colors = _colors;
         _mesh.RecalculateNormals();
     }
 }
