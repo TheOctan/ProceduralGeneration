@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class ColoredMeshGenerator : MonoBehaviour
+public class TexturedMeshGenerator : MonoBehaviour
 {
     [SerializeField] private int _xSize = 20;
     [SerializeField] private int _zSize = 20;
